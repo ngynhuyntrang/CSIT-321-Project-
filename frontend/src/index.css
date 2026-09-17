@@ -1,0 +1,146 @@
+:root {
+  --text: #3f3f46;
+  --text-h: #18181b;
+  --bg: #fafafa;
+  --surface: #fff;
+  --border: #e4e4e7;
+  --accent: #2563eb;
+  --accent-contrast: #fff;
+  --error: #b91c1c;
+  --error-bg: #fef2f2;
+  --ok: #15803d;
+
+  font: 15px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #d4d4d8;
+    --text-h: #f4f4f5;
+    --bg: #18181b;
+    --surface: #27272a;
+    --border: #3f3f46;
+    --error-bg: #3b1616;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2 {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 22px;
+  margin: 0;
+}
+
+h2 {
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.app-shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.health-badge {
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.health-badge.ok {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.health-badge.error {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  max-width: 480px;
+}
+
+.upload-form button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  cursor: pointer;
+}
+
+.upload-form button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error-text {
+  color: var(--error);
+  font-size: 13px;
+}
+
+.validation-summary {
+  margin-top: 24px;
+}
+
+.summary-stats {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+.error-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.error-table th,
+.error-table td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.error-table th {
+  background: var(--surface);
+}
