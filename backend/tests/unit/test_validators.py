@@ -98,6 +98,26 @@ def test_date_count_vs_teaching_weeks_mismatch_is_warning_not_blocking():
     )
 
 
+def test_room_capacity_is_parsed_when_present():
+    result = validate_row(2, _row(room_capacity_raw="40"), KNOWN_ROOMS)
+    assert result.is_valid
+    assert result.cleaned.room_capacity == 40
+
+
+def test_missing_room_capacity_is_none_and_not_an_error():
+    result = validate_row(2, _row(), KNOWN_ROOMS)
+    assert result.is_valid
+    assert result.cleaned.room_capacity is None
+    assert result.errors == []
+
+
+def test_malformed_room_capacity_is_none_and_not_an_error():
+    result = validate_row(2, _row(room_capacity_raw="not-a-number"), KNOWN_ROOMS)
+    assert result.is_valid
+    assert result.cleaned.room_capacity is None
+    assert result.errors == []
+
+
 def test_joint_subject_module_name_extracts_both_codes():
     result = validate_row(
         2, _row(module_name_raw="AUTM-CSCI410-WG-OC, AUTM-CSCI910-WG-OC"), KNOWN_ROOMS

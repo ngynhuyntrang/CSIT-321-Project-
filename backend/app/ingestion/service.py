@@ -7,7 +7,7 @@ from app.db.models.ingestion import IngestionError, IngestionRun
 from app.db.models.lab import Lab
 from app.ingestion.occurrence_expander import expand_occurrences
 from app.ingestion.parser import UnsupportedFileTypeError, parse_upload
-from app.ingestion.validators import ERROR, WARNING, validate_rows
+from app.ingestion.validators import CAPACITY_MISMATCH, ERROR, WARNING, RowError, validate_rows
 
 
 def _record_file_level_error(
@@ -57,6 +57,37 @@ def run_ingestion(db: Session, filename: str, content: bytes) -> IngestionRun:
     known_room_codes = set(labs.keys())
 
     results = validate_rows(df, known_room_codes)
+
+    # Reconcile each row's room_capacity against Lab.capacity before the
+    # summary counts below are computed, so a conflicting row is reflected
+    # in rows_with_warnings. First value wins for a room; later conflicting
+    # rows are flagged rather than silently overwriting it (see
+    # docs/architecture.md -- unknown/conflicting numbers are never guessed).
+    for result in results:
+        if not result.is_valid:
+            continue
+        cleaned = result.cleaned
+        assert cleaned is not None
+        if cleaned.room_capacity is None:
+            continue
+        lab = labs[cleaned.room_code]
+        if lab.capacity is None:
+            lab.capacity = cleaned.room_capacity
+        elif lab.capacity != cleaned.room_capacity:
+            result.errors.append(
+                RowError(
+                    row_number=result.row_number,
+                    field="room_capacity",
+                    error_type=CAPACITY_MISMATCH,
+                    severity=WARNING,
+                    raw_value=str(cleaned.room_capacity),
+                    message=(
+                        f"Row reports capacity {cleaned.room_capacity} for room "
+                        f"'{cleaned.room_code}', but it is already recorded with "
+                        f"capacity {lab.capacity}. Keeping the existing value."
+                    ),
+                )
+            )
 
     ingestion_run.total_rows = len(results)
     ingestion_run.valid_rows = sum(1 for r in results if r.is_valid)

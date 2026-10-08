@@ -26,8 +26,11 @@ Run tests: `pytest` (from `backend/`, with the venv active).
 Lint: `ruff check app`.
 
 Room codes must be seeded before an upload can validate against them — run
-`scripts/seed_real_rooms.py` above (capacity/operating-hours are left `null`
-until confirmed with SCIT Operations; see `docs/architecture.md`).
+`scripts/seed_real_rooms.py` above. Room `capacity` is populated from the
+export's "Capicity" column on the first upload that includes a given room
+(left `null` until then); `weekly_available_hours` has no source in the
+export and stays `null` until confirmed with SCIT Operations — see
+`docs/architecture.md`.
 
 ## Frontend (React + TypeScript + Vite)
 

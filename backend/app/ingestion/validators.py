@@ -32,6 +32,7 @@ INVALID_COHORT_SIZE = "invalid_cohort_size"
 ZERO_COHORT_SIZE = "zero_cohort_size"
 DURATION_END_TIME_MISMATCH = "duration_end_time_mismatch"
 DATE_COUNT_MISMATCH = "date_count_mismatch"
+CAPACITY_MISMATCH = "capacity_mismatch"
 
 REQUIRED_FIELDS = [
     "class_type",
@@ -72,6 +73,7 @@ class CleanedRow:
     dates: list[date]
     week_pattern_raw: str | None
     teaching_weeks_count: int | None
+    room_capacity: int | None
 
 
 @dataclass
@@ -325,6 +327,20 @@ def validate_row(row_number: int, row: pd.Series, known_room_codes: set[str]) ->
     week_pattern_raw = row.get("week_pattern_raw")
     week_pattern_raw = None if _is_missing(week_pattern_raw) else str(week_pattern_raw).strip()
 
+    # Cross-check-only -- not required to ingest a row. Reconciled against
+    # Lab.capacity (first value wins; a later conflicting value is flagged as
+    # a warning) in app.ingestion.service, since that needs the Lab record,
+    # not just this row.
+    room_capacity: int | None = None
+    room_capacity_raw = row.get("room_capacity_raw")
+    if not _is_missing(room_capacity_raw):
+        try:
+            parsed_capacity = int(float(str(room_capacity_raw).strip()))
+            if parsed_capacity >= 0:
+                room_capacity = parsed_capacity
+        except ValueError:
+            room_capacity = None
+
     if dates is not None and teaching_weeks_count is not None and len(dates) != teaching_weeks_count:
         errors.append(
             RowError(
@@ -360,6 +376,7 @@ def validate_row(row_number: int, row: pd.Series, known_room_codes: set[str]) ->
         dates=dates,
         week_pattern_raw=week_pattern_raw,
         teaching_weeks_count=teaching_weeks_count,
+        room_capacity=room_capacity,
     )
     return RowValidationResult(row_number=row_number, is_valid=True, errors=errors, cleaned=cleaned)
 

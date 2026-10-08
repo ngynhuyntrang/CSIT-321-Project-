@@ -33,12 +33,19 @@ rebuild is driven by the real export: `docs/SCIT 2026 Lab Bookings.xlsx`.
   pattern is an unverified guess, not a fact. `ScheduleOccurrence.week_number`
   stays `null` until a verified date→teaching-week reference (e.g. an
   official UOW semester calendar) is introduced as a separate input.
-- **Unknown numbers are stored as `null`, never invented.** The export has no
-  room capacity or operating-hours data. `Lab.capacity` and
-  `Lab.weekly_available_hours` are nullable and seeded as `null`
-  (`scripts/seed_real_rooms.py`) rather than a guessed or zero value — `0`
-  would falsely mean "no capacity" instead of "unknown". Any future
-  capacity- or utilisation-percentage calculation must check for `null` and
+- **Unknown numbers are stored as `null`, never invented.** The export gained
+  a "Capicity" (sic) column after the initial FR1 build, giving a consistent
+  per-room value across all 276 rows (3-124: 28, 3-125: 40, 3-126: 27,
+  3-127: 48, 3-128: 28, 3-230: 26, 39A-104: 40). `app/ingestion/service.py`
+  reconciles this into `Lab.capacity` on upload (first value for a room
+  wins; a later conflicting row is flagged as a `capacity_mismatch` warning
+  rather than silently overwriting it) — `scripts/seed_real_rooms.py` still
+  seeds `capacity=None`, since a room only gets a real value once an
+  ingestion run has supplied one. The export still has no room
+  operating-hours data, so `Lab.weekly_available_hours` stays nullable and
+  seeded as `null` rather than a guessed or zero value — `0` would falsely
+  mean "no capacity" instead of "unknown". Any future utilisation-percentage
+  calculation must still check `weekly_available_hours` for `null` and
   report "not available" rather than compute against it.
 - **Two-severity validation.** `IngestionError.severity` is `"error"` (row
   excluded from the baseline: missing field, unrecognized room, unparseable
@@ -55,9 +62,11 @@ rebuild is driven by the real export: `docs/SCIT 2026 Lab Bookings.xlsx`.
   the real Enterprise export format (`docs/SCIT 2026 Lab Bookings.xlsx`).
   Upload `.xlsx`/`.csv` → flexible column mapping
   (`app/ingestion/column_mapping.py`) → subject-code extraction from
-  `Module Name` (`app/ingestion/parser.py`) → row validation
-  (`app/ingestion/validators.py`) → severity-aware summary log in the UI
-  (`IngestPage.tsx` / `ValidationSummary.tsx`).
+  `Module Name` (`app/ingestion/parser.py`) → row validation, including
+  `Lab.capacity` reconciliation from the export's "Capicity" column
+  (`app/ingestion/validators.py`, `app/ingestion/service.py`) →
+  severity-aware summary log in the UI (`IngestPage.tsx` /
+  `ValidationSummary.tsx`).
 - **Phase 2 — FR2 (Lab Utilisation & Heatmap)**: **design only, not
   implemented.** Open items below need client confirmation before building.
 - **Phase 3 — FR3 (Scenario Simulation Engine)**: not started.

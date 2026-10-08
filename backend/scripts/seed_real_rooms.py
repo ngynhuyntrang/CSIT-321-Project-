@@ -1,12 +1,13 @@
 """Seeds the 7 room codes found in the real SCIT Enterprise export
 (docs/SCIT 2026 Lab Bookings.xlsx) so ingestion can recognize them.
 
-The export carries no room capacity or operating-hours data, so `capacity`
-and `weekly_available_hours` are left null (unknown) rather than guessed or
-defaulted to 0/48/25 -- those numbers must come from Ridwan Haq (SCIT
-Operations) before any capacity- or utilisation-percentage calculation can
-use them. Room type is set to "computing" since every one of these rooms
-hosts at least one "Computer Lab" booking in the export.
+`capacity` is left null here -- it is populated from the export's "Capicity"
+column during ingestion instead (app/ingestion/service.py), since that's the
+real per-room source of truth, not a value to hardcode in a seed script.
+`weekly_available_hours` has no equivalent column in the export, so it stays
+null (unknown) until that number comes from Ridwan Haq (SCIT Operations).
+Room type is set to "computing" since every one of these rooms hosts at
+least one "Computer Lab" booking in the export.
 
 Usage: `python -m scripts.seed_real_rooms` (from `backend/`, with the venv
 active and `SCIT_DATABASE_URL` pointed at the target database).

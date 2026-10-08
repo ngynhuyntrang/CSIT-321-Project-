@@ -12,6 +12,7 @@ REAL_HEADERS = [
     "Scheduled Start Time",
     "Scheduled End Time",
     "Allocated Location Name",
+    "Capicity",
     "Number Of Teaching Weeks",
     "Teaching Week Pattern",
     "Activity Dates (Individual)",
@@ -25,6 +26,13 @@ def test_real_enterprise_headers_map_to_all_required_fields():
     assert "room_code" in renamed.columns
     assert "activity_dates_raw" in renamed.columns
     assert "class_type" in renamed.columns
+    assert "room_capacity_raw" in renamed.columns
+
+
+def test_correctly_spelled_capacity_header_also_maps():
+    df = pd.DataFrame([["x"]], columns=["Capacity"])
+    renamed, _ = map_columns(df)
+    assert "room_capacity_raw" in renamed.columns
 
 
 def test_missing_location_column_is_reported():

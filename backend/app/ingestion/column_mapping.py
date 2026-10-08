@@ -24,14 +24,15 @@ CANONICAL_FIELDS = [
     "start_time_raw",
     "end_time_raw",
     "room_code",
+    "room_capacity_raw",
     "teaching_weeks_count_raw",
     "week_pattern_raw",
     "activity_dates_raw",
 ]
 
-# teaching_weeks_count_raw / week_pattern_raw are cross-check-only fields
-# (see validators.py) and activity_name is descriptive -- none are required
-# to ingest a row.
+# teaching_weeks_count_raw / week_pattern_raw / room_capacity_raw are
+# cross-check-only fields (see validators.py) and activity_name is
+# descriptive -- none are required to ingest a row.
 REQUIRED_FIELDS = [
     "class_type",
     "module_name_raw",
@@ -54,6 +55,10 @@ _ALIASES: dict[str, list[str]] = {
     "start_time_raw": ["scheduled start time", "start time"],
     "end_time_raw": ["scheduled end time", "end time"],
     "room_code": ["allocated location name", "room number", "room code", "location", "venue"],
+    # "capicity" is a misspelling in the real export (docs/SCIT 2026 Lab
+    # Bookings.xlsx) -- kept as an alias rather than fixed upstream, since we
+    # don't control the Enterprise export.
+    "room_capacity_raw": ["capicity", "capacity", "room capacity"],
     "teaching_weeks_count_raw": ["number of teaching weeks", "teaching weeks"],
     "week_pattern_raw": ["teaching week pattern", "week pattern"],
     "activity_dates_raw": [
