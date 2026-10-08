@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SCIT Lab Scheduling Prototype</title>
+<style>
+  :root {
+    --accent: #2563eb;
+    --accent-dark: #1e3a8a;
+    --accent-light: #eff6ff;
+    --error: #b91c1c;
+    --error-bg: #fef2f2;
+    --warning: #92400e;
+    --warning-bg: #fffbeb;
+    --ok: #15803d;
+    --ok-bg: #f0fdf4;
+    --planned: #52525b;
+    --planned-bg: #f4f4f5;
+    --text: #3f3f46;
+    --text-h: #18181b;
+    --text-muted: #71717a;
+    --border: #e4e4e7;
+    --surface: #ffffff;
+    --bg: #f8fafc;
+    --sidebar-bg: #0f172a;
+    --sidebar-text: #cbd5e1;
+    --heat-1: #eff6ff;
+    --heat-2: #bfdbfe;
+    --heat-3: #60a5fa;
+    --heat-4: #2563eb;
+    --heat-5: #1e3a8a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #e5e7eb;
+    font: 15px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 56px;
+    padding: 56px 24px 96px;
+  }
+
+  h1, h2, h3 { color: var(--text-h); margin: 0; }
+
+  .frame-wrap { width: 1440px; }
+
+  .frame-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #52525b;
+    margin-bottom: 10px;
+  }
+
+  .screen {
+    display: flex;
+    width: 1440px;
+    min-height: 920px;
+    background: var(--bg);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, .14);
+  }
+
+  /* ---------- sidebar ---------- */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brand { margin-bottom: 40px; }
+  .brand-title { font-size: 16px; font-weight: 700; color: #fff; }
+  .brand-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+  .nav-section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #64748b;
+    margin: 0 0 10px 12px;
+  }
+
+  .nav-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    font-size: 13px;
+  }
+
+  .nav-item.active { background: rgba(255, 255, 255, .08); color: #fff; font-weight: 600; }
+
+  .nav-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+
+  .nav-badge.built { background: #14532d; color: #86efac; }
+  .nav-badge.design { background: #1e3a8a; color: #93c5fd; }
+  .nav-badge.planned { background: #3f3f46; color: #a1a1aa; }
+
+  .sidebar-foot {
+    margin-top: auto;
+    font-size: 11px;
+    color: #64748b;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, .08);
+  }
+
+  /* ---------- content ---------- */
+  .content { flex: 1; padding: 36px 44px; }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .topbar h1 { font-size: 24px; margin-bottom: 4px; }
+  .topbar .subtitle { font-size: 13px; color: var(--text-muted); }
+  .topbar .subtitle strong { color: var(--text); }
+
+  .topbar-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+
+  .status-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+
+  .status-badge.built { background: var(--ok-bg); color: var(--ok); border-color: #bbf7d0; }
+  .status-badge.design { background: var(--accent-light); color: var(--accent-dark); border-color: #bfdbfe; }
+  .status-badge.planned { background: var(--planned-bg); color: var(--planned); border-color: var(--border); }
+
+  .info-note {
+    font-size: 12px;
+    color: var(--accent-dark);
+    background: var(--accent-light);
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 6px 12px;
+    max-width: 320px;
+    text-align: right;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    margin-bottom: 24px;
+  }
+
+  .card h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+
+  .stat-card .value { font-size: 28px; font-weight: 700; color: var(--text-h); }
+  .stat-card .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+
+  .stat-card.error .value { color: var(--error); }
+  .stat-card.warning .value { color: var(--warning); }
+  .stat-card.ok .value { color: var(--ok); }
+
+  .dropzone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 36px;
+    text-align: center;
+    background: #f8fafc;
+  }
+
+  .dropzone .title { font-size: 15px; font-weight: 600; color: var(--text-h); margin-bottom: 4px; }
+  .dropzone .hint { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+
+  .btn {
+    display: inline-block;
+    padding: 9px 18px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+  }
+
+  .btn.secondary { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  .btn.disabled { background: #e4e4e7; color: #a1a1aa; }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th, .data-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .data-table th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .data-table.errors th { background: var(--error-bg); }
+  .data-table.warnings th { background: var(--warning-bg); }
+
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; background: #f4f4f5; color: var(--text); }
+
+  /* ---------- screen 2: filters / heatmap ---------- */
+  .filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+
+  .toggle-group { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .toggle-group button {
+    padding: 8px 14px;
+    font-size: 12px;
+    border: none;
+    background: #fff;
+    color: var(--text-muted);
+    font-family: inherit;
+  }
+  .toggle-group button.active { background: var(--accent); color: #fff; }
+
+  .select-look {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    background: #fff;
+    color: var(--text);
+  }
+
+  .layout-2col { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
+
+  .heatmap { display: grid; grid-template-columns: 84px repeat(5, 1fr); gap: 5px; }
+  .heatmap .col-label { font-size: 11px; color: var(--text-muted); text-align: center; text-transform: uppercase; padding-bottom: 4px; }
+  .heatmap .row-label { font-size: 12px; font-weight: 600; color: var(--text-h); display: flex; align-items: center; }
+  .heat-cell { border-radius: 7px; height: 46px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .h1 { background: var(--heat-1); color: #1e3a8a; }
+  .h2 { background: var(--heat-2); color: #1e3a8a; }
+  .h3 { background: var(--heat-3); color: #fff; }
+  .h4 { background: var(--heat-4); color: #fff; }
+  .h5 { background: var(--heat-5); color: #fff; }
+
+  .legend { display: flex; gap: 14px; align-items: center; font-size: 11px; color: var(--text-muted); margin-top: 14px; }
+  .legend .swatch { width: 13px; height: 13px; border-radius: 4px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+
+  .metric-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .metric-row:last-child { border-bottom: none; }
+  .metric-row .value { font-weight: 600; color: var(--text-h); }
+
+  .conflict-item { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .conflict-item:last-child { border-bottom: none; }
+  .conflict-item .room { font-weight: 600; color: var(--text-h); }
+  .conflict-item .detail { color: var(--text-muted); margin-top: 2px; }
+
+  /* ---------- screen 3: scenario builder ---------- */
+  .edit-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 14px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+
+  .edit-row .tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: var(--accent-light);
+    color: var(--accent-dark);
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-right: 10px;
+  }
+
+  .field-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .field { flex: 1; }
+  .field label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted); margin-bottom: 5px; }
+  .field .input-look {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    background: #fff;
+    color: var(--text);
+  }
+
+  .constraint-note {
+    font-size: 12px;
+    color: var(--warning);
+    background: var(--warning-bg);
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 14px;
+  }
+
+  .empty-state { text-align: center; padding: 56px 20px; color: var(--text-muted); }
+  .empty-state .icon-placeholder { width: 48px; height: 48px; border-radius: 50%; background: #f4f4f5; margin: 0 auto 14px; }
+  .empty-state .title { font-size: 14px; font-weight: 600; color: var(--text-h); margin-bottom: 4px; }
+  .empty-state .hint { font-size: 12px; }
+
+  /* ---------- screen 4: comparison / recommendations ---------- */
+  .compare-room { margin-bottom: 16px; }
+  .compare-room .label-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+  .compare-room .label-row .value { font-weight: 600; color: var(--text-h); }
+  .bar-track { height: 12px; background: #f4f4f5; border-radius: 6px; overflow: hidden; margin-bottom: 4px; }
+  .bar-fill { height: 100%; border-radius: 6px; }
+  .bar-fill.a { background: var(--accent); }
+  .bar-fill.b { background: #0d9488; }
+
+  .compare-legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+  .compare-legend .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+
+  .rec-card { display: flex; gap: 16px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: #fff; margin-bottom: 12px; }
+  .rec-rank {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .rec-card .rec-title { font-weight: 600; font-size: 13px; color: var(--text-h); margin-bottom: 4px; }
+  .rec-card .rec-rationale { font-size: 12px; color: var(--text-muted); }
+  .rec-card .rec-actions { margin-left: auto; flex-shrink: 0; align-self: center; }
+
+  /* ---------- sidebar: bookings section + signed-in user ---------- */
+  .nav-section-gap { margin-top: 24px; }
+  .user-chip { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #1e3a8a;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .user-name { font-size: 12px; color: #fff; font-weight: 600; }
+  .role-pill { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px; }
+  .role-pill.admin { background: #1e3a8a; color: #93c5fd; }
+  .role-pill.student { background: #134e4a; color: #5eead4; }
+  .sign-out { font-size: 12px; color: #94a3b8; }
+
+  /* ---------- auth screens ---------- */
+  .auth-brand {
+    width: 560px;
+    flex-shrink: 0;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    padding: 56px 56px;
+    display: flex;
+    flex-direction: column;
+  }
+  .auth-brand .brand-title { font-size: 22px; }
+  .auth-brand .brand-sub { font-size: 13px; }
+  .auth-brand .pitch { margin-top: auto; }
+  .auth-brand .pitch h2 { color: #fff; font-size: 28px; line-height: 1.25; margin-bottom: 14px; }
+  .auth-brand .pitch p { font-size: 14px; color: #94a3b8; margin: 0 0 24px; }
+  .auth-brand .feature { font-size: 13px; padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, .08); }
+  .auth-brand .feature strong { color: #fff; }
+  .auth-main { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .auth-card {
+    width: 440px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 36px 40px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .06);
+  }
+  .auth-card h1 { font-size: 24px; margin-bottom: 4px; }
+  .auth-card .subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+  .auth-card .field { margin-bottom: 14px; }
+  .auth-card .btn { display: block; text-align: center; width: 100%; padding: 11px 18px; margin-top: 6px; }
+  .auth-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin: 4px 0 14px; }
+  .auth-foot { font-size: 13px; text-align: center; color: var(--text-muted); margin-top: 20px; }
+  .link { color: var(--accent); font-weight: 600; }
+  .checkbox-look { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text); }
+  .checkbox-look .box { width: 15px; height: 15px; border: 1px solid #a1a1aa; border-radius: 4px; background: #fff; }
+  .checkbox-look .box.checked { background: var(--accent); border-color: var(--accent); }
+  .field .input-look.error { border-color: var(--error); background: var(--error-bg); }
+  .field-error { font-size: 11px; color: var(--error); margin-top: 4px; }
+  .field-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .role-switch { display: flex; gap: 10px; }
+  .role-option { flex: 1; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 12px; background: #fff; }
+  .role-option strong { display: block; font-size: 13px; color: var(--text-h); }
+  .role-option.active { border: 2px solid var(--accent); background: var(--accent-light); }
+  .divider { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-muted); margin: 18px 0; text-transform: uppercase; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+  /* ---------- admin bookings ---------- */
+  .search-look { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; background: #fff; color: var(--text-muted); width: 240px; }
+  .filter-bar .spacer { flex: 1; }
+  .row-actions { display: flex; gap: 10px; font-size: 12px; font-weight: 600; }
+  .row-actions .edit { color: var(--accent); }
+  .row-actions .cancel { color: var(--error); }
+  .data-table tr.flag-warning td { background: var(--warning-bg); }
+  .data-table tr.flag-error td { background: var(--error-bg); }
+  .source { font-size: 11px; color: var(--text-muted); }
+  .source.manual { color: var(--accent-dark); font-weight: 600; }
+  .check-item { display: flex; gap: 10px; padding: 12px 14px; border-radius: 8px; font-size: 12px; margin-bottom: 8px; border: 1px solid transparent; }
+  .check-item .mark { font-weight: 700; flex-shrink: 0; width: 16px; }
+  .check-item strong { display: block; color: var(--text-h); font-size: 13px; margin-bottom: 2px; }
+  .check-item.ok { background: var(--ok-bg); border-color: #bbf7d0; }
+  .check-item.ok .mark { color: var(--ok); }
+  .check-item.error { background: var(--error-bg); border-color: #fecaca; }
+  .check-item.error .mark { color: var(--error); }
+  .check-item.warning { background: var(--warning-bg); border-color: #fde68a; }
+  .check-item.warning .mark { color: var(--warning); }
+  .form-actions { display: flex; gap: 10px; margin-top: 8px; }
+  .diff-row { display: grid; grid-template-columns: 110px 1fr; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .diff-row:last-child { border-bottom: none; }
+  .diff-row .key { color: var(--text-muted); font-size: 12px; }
+  .diff-old { text-decoration: line-through; color: var(--text-muted); margin-right: 6px; }
+  .diff-new { font-weight: 600; color: var(--accent-dark); }
+  .textarea-look { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: #fff; min-height: 72px; color: var(--text); }
+  .history-item { font-size: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .history-item:last-child { border-bottom: none; }
+  .history-item .when { color: var(--text-muted); font-size: 11px; }
+
+  /* ---------- student screens ---------- */
+  .timetable-wrap { position: relative; }
+  .timetable-overlay { position: absolute; inset: 0; }
+  .timetable { display: grid; grid-template-columns: 64px repeat(5, 1fr); grid-template-rows: 28px repeat(10, 52px); gap: 0; font-size: 11px; }
+  .timetable .day { text-align: center; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+  .timetable .time { color: var(--text-muted); padding-top: 2px; border-top: 1px solid var(--border); }
+  .timetable .slot { border-top: 1px solid var(--border); border-left: 1px solid var(--border); }
+  .tt-block { margin: 2px 4px; border-radius: 8px; padding: 6px 8px; font-size: 11px; line-height: 1.35; position: relative; z-index: 1; }
+  .tt-block strong { display: block; font-size: 12px; }
+  .tt-block.lab { background: var(--accent-light); border-left: 4px solid var(--accent); color: var(--accent-dark); }
+  .tt-block.lecture { background: #f5f3ff; border-left: 4px solid #7c3aed; color: #4c1d95; }
+  .tt-block.tutorial { background: #f0fdfa; border-left: 4px solid #0d9488; color: #134e4a; }
+  .day-dots { display: flex; gap: 8px; margin: 12px 0 4px; }
+  .day-dot { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: #f4f4f5; color: #a1a1aa; }
+  .day-dot.on { background: var(--accent); color: #fff; }
+  .subject-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .subject-head .title { font-weight: 700; color: var(--text-h); font-size: 15px; }
+  .subject-head .meta { font-size: 12px; color: var(--text-muted); }
+  .slot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .slot-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; background: #fff; display: flex; flex-direction: column; gap: 6px; }
+  .slot-card .name { font-weight: 700; color: var(--text-h); font-size: 13px; }
+  .slot-card .when { font-size: 12px; }
+  .slot-card .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  .slot-card.selected { border: 2px solid var(--accent); background: var(--accent-light); }
+  .slot-card.full { background: #fafafa; color: #a1a1aa; }
+  .slot-card.full .name { color: #a1a1aa; }
+  .slot-card.clash { border-color: #fecaca; }
+  .seats { font-size: 11px; font-weight: 600; }
+  .seats.ok { color: var(--ok); }
+  .seats.low { color: var(--warning); }
+  .seats.none { color: #a1a1aa; }
+  .btn.small { padding: 6px 12px; font-size: 12px; }
+  .clash-note { font-size: 11px; color: var(--error); }
+  .free-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .free-row:last-child { border-bottom: none; }
+  .free-row .until { font-size: 12px; color: var(--text-muted); }
+  .rating { display: flex; gap: 6px; }
+  .rating span { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; background: #fff; }
+  .rating span.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .status-badge.small { font-size: 11px; padding: 2px 9px; }
+  .feedback-item { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .feedback-item:last-child { border-bottom: none; }
+  .feedback-item .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .feedback-item .top strong { color: var(--text-h); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- ============ SCREEN 1 — Upload & Validate (FR1, Built) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">1 · Upload &amp; Validate</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Workflow</div>
+      <div class="nav-item active"><span>Upload &amp; Validate</span><span class="nav-badge built">Built</span></div>
+      <div class="nav-item"><span>Lab Utilisation</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>Scenario Simulation</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-item"><span>Recommendations</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-section-label nav-section-gap">Bookings</div>
+      <div class="nav-item"><span>All Bookings</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>New Booking</span><span class="nav-badge design">Design</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar">JS</span><div><div class="user-name">Jamie Smith</div><span class="role-pill admin">SCIT Operations</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>Upload &amp; Validate</h1>
+          <div class="subtitle">FR1 — <strong>Timetable Data Ingestion &amp; Integrity Check</strong></div>
+        </div>
+        <div class="topbar-meta">
+          <span class="status-badge built">Built</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Upload Enterprise Export</h2>
+        <div class="dropzone">
+          <div class="title">Drag &amp; drop your timetable export here</div>
+          <div class="hint">Accepts .xlsx or .csv &mdash; e.g. SCIT 2026 Lab Bookings.xlsx</div>
+          <span class="btn">Browse Files</span>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="value">276</div><div class="label">Total Rows</div></div>
+        <div class="stat-card ok"><div class="value">272</div><div class="label">Inserted</div></div>
+        <div class="stat-card error"><div class="value">4</div><div class="label">Errors</div></div>
+        <div class="stat-card warning"><div class="value">3</div><div class="label">Warnings</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Errors — row excluded from baseline</h2>
+        <table class="data-table errors">
+          <thead><tr><th>Row</th><th>Room</th><th>Module</th><th>Issue</th></tr></thead>
+          <tbody>
+            <tr><td>42</td><td><span class="pill">3-129</span></td><td>CSIT213</td><td>Unrecognized room code — not in SCIT room list</td></tr>
+            <tr><td>118</td><td><span class="pill">3-124</span></td><td>CSCI203</td><td>Unparseable start time (&ldquo;TBA&rdquo;)</td></tr>
+            <tr><td>201</td><td><span class="pill">39A-104</span></td><td>CSIT321</td><td>Missing Module Name</td></tr>
+            <tr><td>244</td><td><span class="pill">3-127</span></td><td>CSIT128</td><td>Unparseable date in Activity Dates (Individual)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Warnings — row inserted, flagged for review</h2>
+        <table class="data-table warnings">
+          <thead><tr><th>Row</th><th>Room</th><th>Module</th><th>Issue</th></tr></thead>
+          <tbody>
+            <tr><td>76</td><td><span class="pill">3-125</span></td><td>CSCI235</td><td>Cohort size recorded as 0</td></tr>
+            <tr><td>133</td><td><span class="pill">3-230</span></td><td>CSIT213</td><td>Start/end time doesn&rsquo;t match stated duration</td></tr>
+            <tr><td>190</td><td><span class="pill">3-126</span></td><td>CSIT321</td><td>Activity Dates count (11) doesn&rsquo;t match Number Of Teaching Weeks (12)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 2 — Lab Utilisation & Heatmap (FR2, Design) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">2 · Lab Utilisation &amp; Heatmap</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Workflow</div>
+      <div class="nav-item"><span>Upload &amp; Validate</span><span class="nav-badge built">Built</span></div>
+      <div class="nav-item active"><span>Lab Utilisation</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>Scenario Simulation</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-item"><span>Recommendations</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-section-label nav-section-gap">Bookings</div>
+      <div class="nav-item"><span>All Bookings</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>New Booking</span><span class="nav-badge design">Design</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar">JS</span><div><div class="user-name">Jamie Smith</div><span class="role-pill admin">SCIT Operations</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>Lab Utilisation</h1>
+          <div class="subtitle">FR2 — <strong>Lab Utilisation &amp; Heatmap</strong></div>
+        </div>
+        <div class="topbar-meta">
+          <span class="status-badge design">Design</span>
+          <div class="info-note">Utilisation % pending confirmed Available Lab Hours — showing Booked Hours</div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="toggle-group">
+          <button class="active">All Activity</button>
+          <button>Computer Lab Only</button>
+        </div>
+        <span class="select-look">Week of 17 Aug 2026 ▾</span>
+        <span class="select-look">All Rooms ▾</span>
+      </div>
+
+      <div class="layout-2col">
+        <div class="card">
+          <h2>Booked Hours — by room &amp; day</h2>
+          <div class="heatmap">
+            <div></div>
+            <div class="col-label">Mon</div><div class="col-label">Tue</div><div class="col-label">Wed</div><div class="col-label">Thu</div><div class="col-label">Fri</div>
+
+            <div class="row-label">3-124</div>
+            <div class="heat-cell h4">6h</div><div class="heat-cell h5">8h</div><div class="heat-cell h3">4h</div><div class="heat-cell h4">6h</div><div class="heat-cell h2">2h</div>
+
+            <div class="row-label">3-125</div>
+            <div class="heat-cell h2">2h</div><div class="heat-cell h3">4h</div><div class="heat-cell h3">4h</div><div class="heat-cell h1">1h</div><div class="heat-cell h2">2h</div>
+
+            <div class="row-label">3-126</div>
+            <div class="heat-cell h3">4h</div><div class="heat-cell h2">2h</div><div class="heat-cell h4">6h</div><div class="heat-cell h3">4h</div><div class="heat-cell h1">0h</div>
+
+            <div class="row-label">3-127</div>
+            <div class="heat-cell h1">1h</div><div class="heat-cell h2">2h</div><div class="heat-cell h2">2h</div><div class="heat-cell h1">1h</div><div class="heat-cell h1">0h</div>
+
+            <div class="row-label">3-128</div>
+            <div class="heat-cell h3">4h</div><div class="heat-cell h4">6h</div><div class="heat-cell h3">4h</div><div class="heat-cell h2">2h</div><div class="heat-cell h2">2h</div>
+
+            <div class="row-label">3-230</div>
+            <div class="heat-cell h5">8h</div><div class="heat-cell h4">6h</div><div class="heat-cell h5">8h</div><div class="heat-cell h4">6h</div><div class="heat-cell h3">4h</div>
+
+            <div class="row-label">39A-104</div>
+            <div class="heat-cell h1">1h</div><div class="heat-cell h1">1h</div><div class="heat-cell h2">2h</div><div class="heat-cell h1">1h</div><div class="heat-cell h1">0h</div>
+          </div>
+          <div class="legend">
+            <span>Booked hours/day:</span>
+            <span><span class="swatch" style="background:var(--heat-1)"></span>0&ndash;1h</span>
+            <span><span class="swatch" style="background:var(--heat-2)"></span>2&ndash;3h</span>
+            <span><span class="swatch" style="background:var(--heat-3)"></span>4&ndash;5h</span>
+            <span><span class="swatch" style="background:var(--heat-4)"></span>6&ndash;7h</span>
+            <span><span class="swatch" style="background:var(--heat-5)"></span>8h+</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h2>Booked Hours / Week</h2>
+            <div class="metric-row"><span>3-230</span><span class="value">32h</span></div>
+            <div class="metric-row"><span>3-124</span><span class="value">26h</span></div>
+            <div class="metric-row"><span>3-128</span><span class="value">18h</span></div>
+            <div class="metric-row"><span>3-126</span><span class="value">16h</span></div>
+            <div class="metric-row"><span>3-125</span><span class="value">11h</span></div>
+            <div class="metric-row"><span>39A-104</span><span class="value">5h</span></div>
+            <div class="metric-row"><span>3-127</span><span class="value">6h</span></div>
+          </div>
+          <div class="card">
+            <h2>Scheduling Conflicts</h2>
+            <div class="conflict-item">
+              <div class="room">3-124 · Tue 10:00&ndash;11:00</div>
+              <div class="detail">CSIT213 (Computer Lab) overlaps CSCI203 (Practical)</div>
+            </div>
+            <div class="conflict-item">
+              <div class="room">3-230 · Thu 14:00&ndash;15:00</div>
+              <div class="detail">CSIT321 (Computer Lab) overlaps CSIT128 (Tutorial)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 3 — Scenario Simulation (FR3, Planned) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">3 · Scenario Simulation</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Workflow</div>
+      <div class="nav-item"><span>Upload &amp; Validate</span><span class="nav-badge built">Built</span></div>
+      <div class="nav-item"><span>Lab Utilisation</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item active"><span>Scenario Simulation</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-item"><span>Recommendations</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-section-label nav-section-gap">Bookings</div>
+      <div class="nav-item"><span>All Bookings</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>New Booking</span><span class="nav-badge design">Design</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar">JS</span><div><div class="user-name">Jamie Smith</div><span class="role-pill admin">SCIT Operations</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>Scenario Simulation</h1>
+          <div class="subtitle">FR3 — <strong>Scenario Simulation Engine</strong></div>
+        </div>
+        <div class="topbar-meta">
+          <span class="status-badge planned">Planned</span>
+        </div>
+      </div>
+
+      <div class="layout-2col">
+        <div>
+          <div class="card">
+            <h2>Scenario</h2>
+            <div class="field-row">
+              <div class="field">
+                <label>Scenario name</label>
+                <div class="input-look">Relieve 3-124 congestion</div>
+              </div>
+              <div class="field">
+                <label>Base data</label>
+                <div class="input-look">Current baseline (272 rows)</div>
+              </div>
+            </div>
+
+            <div class="edit-row"><div><span class="tag">Move</span>CSIT213 Computer Lab: 3-124 → 3-230 (Tue 10:00&ndash;12:00)</div></div>
+            <div class="edit-row"><div><span class="tag">Move</span>CSCI203 Practical: 3-124 → 3-127 (Wed 13:00&ndash;15:00)</div></div>
+            <div class="edit-row"><div><span class="tag">Add</span>CSCI235 Tutorial: 3-125, 20 students (Fri 09:00&ndash;10:00)</div></div>
+            <span class="btn secondary">+ Add edit</span>
+          </div>
+
+          <div class="card">
+            <h2>Constraints</h2>
+            <table class="data-table">
+              <thead><tr><th>Room</th><th>Capacity</th><th>Weekly available hours</th></tr></thead>
+              <tbody>
+                <tr><td>3-124</td><td><span class="pill">not set</span></td><td><span class="pill">not set</span></td></tr>
+                <tr><td>3-230</td><td><span class="pill">not set</span></td><td><span class="pill">not set</span></td></tr>
+                <tr><td>3-127</td><td><span class="pill">not set</span></td><td><span class="pill">not set</span></td></tr>
+              </tbody>
+            </table>
+            <div class="constraint-note">Room capacity &amp; weekly hours aren&rsquo;t in the Enterprise export — confirm with SCIT Operations before running.</div>
+          </div>
+
+          <span class="btn disabled">Run Simulation</span>
+        </div>
+
+        <div class="card">
+          <h2>Results</h2>
+          <div class="empty-state">
+            <div class="icon-placeholder"></div>
+            <div class="title">No simulation run yet</div>
+            <div class="hint">Add edits and run the scenario to preview projected room-by-room hours and conflicts.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 4 — Comparison & Recommendations (FR4, Planned) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">4 · Comparison &amp; Recommendations</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Workflow</div>
+      <div class="nav-item"><span>Upload &amp; Validate</span><span class="nav-badge built">Built</span></div>
+      <div class="nav-item"><span>Lab Utilisation</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>Scenario Simulation</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-item active"><span>Recommendations</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-section-label nav-section-gap">Bookings</div>
+      <div class="nav-item"><span>All Bookings</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>New Booking</span><span class="nav-badge design">Design</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar">JS</span><div><div class="user-name">Jamie Smith</div><span class="role-pill admin">SCIT Operations</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>Comparison &amp; Recommendations</h1>
+          <div class="subtitle">FR4 — <strong>Comparison &amp; Recommendations</strong></div>
+        </div>
+        <div class="topbar-meta">
+          <span class="status-badge planned">Planned</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Booked Hours / Week — Scenario A vs Scenario B</h2>
+        <div class="compare-legend">
+          <span><span class="swatch" style="background:var(--accent)"></span>Scenario A — current baseline</span>
+          <span><span class="swatch" style="background:#0d9488"></span>Scenario B — relieve 3-124 congestion</span>
+        </div>
+
+        <div class="compare-room">
+          <div class="label-row"><span>3-124</span><span class="value">26h → 18h</span></div>
+          <div class="bar-track"><div class="bar-fill a" style="width:81%"></div></div>
+          <div class="bar-track"><div class="bar-fill b" style="width:56%"></div></div>
+        </div>
+        <div class="compare-room">
+          <div class="label-row"><span>3-230</span><span class="value">32h → 38h</span></div>
+          <div class="bar-track"><div class="bar-fill a" style="width:100%"></div></div>
+          <div class="bar-track"><div class="bar-fill b" style="width:100%"></div></div>
+        </div>
+        <div class="compare-room">
+          <div class="label-row"><span>3-127</span><span class="value">6h → 12h</span></div>
+          <div class="bar-track"><div class="bar-fill a" style="width:19%"></div></div>
+          <div class="bar-track"><div class="bar-fill b" style="width:38%"></div></div>
+        </div>
+        <div class="compare-room">
+          <div class="label-row"><span>3-125</span><span class="value">11h → 13h</span></div>
+          <div class="bar-track"><div class="bar-fill a" style="width:34%"></div></div>
+          <div class="bar-track"><div class="bar-fill b" style="width:41%"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Recommendations</h2>
+        <div class="rec-card">
+          <div class="rec-rank">1</div>
+          <div>
+            <div class="rec-title">Move CSIT213 Computer Lab sessions from 3-124 to 3-230</div>
+            <div class="rec-rationale">Resolves 2 scheduling conflicts and frees 4 hrs/week in 3-124.</div>
+          </div>
+          <div class="rec-actions"><span class="btn secondary">Apply to scenario</span></div>
+        </div>
+        <div class="rec-card">
+          <div class="rec-rank">2</div>
+          <div>
+            <div class="rec-title">Consolidate CSCI203 Practical and CSCI235 Tutorial into a shared block</div>
+            <div class="rec-rationale">Reduces total booked hours across 3-124 and 3-127 by roughly 3 hrs/week.</div>
+          </div>
+          <div class="rec-actions"><span class="btn secondary">Apply to scenario</span></div>
+        </div>
+        <div class="rec-card">
+          <div class="rec-rank">3</div>
+          <div>
+            <div class="rec-title">Flag 39A-104 for underutilisation review</div>
+            <div class="rec-rationale">Booked only 5 hrs/week vs. a 7-room average of 16.6 hrs/week.</div>
+          </div>
+          <div class="rec-actions"><span class="btn secondary">Apply to scenario</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 5 — Log in (Auth, Design) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">5 · Log in</div>
+  <div class="screen">
+    <aside class="auth-brand">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="pitch">
+        <h2>Lab utilisation and scheduling, in one place.</h2>
+        <p>Validate Enterprise exports, spot bottlenecked rooms and model timetable changes before they happen.</p>
+        <div class="feature"><strong>Operations staff</strong> &mdash; upload timetables, manage bookings, run scenarios</div>
+        <div class="feature"><strong>Students</strong> &mdash; choose lab classes, check room availability, share feedback</div>
+      </div>
+    </aside>
+    <main class="auth-main">
+      <div class="auth-card">
+        <h1>Sign in</h1>
+        <div class="subtitle">Staff and students use their UOW account.</div>
+        <div class="field">
+          <label>UOW email</label>
+          <div class="input-look">jsmith@uow.edu.au</div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="input-look">••••••••••</div>
+        </div>
+        <div class="auth-row">
+          <span class="checkbox-look"><span class="box checked"></span>Remember me</span>
+          <span class="link">Forgot password?</span>
+        </div>
+        <span class="btn">Sign in</span>
+        <div class="divider">or</div>
+        <span class="btn secondary" style="display:block;text-align:center;">Continue with UOW single sign-on</span>
+        <div class="auth-foot">New to the tool? <span class="link">Create an account</span></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 6 — Sign up (Auth, Design) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">6 · Sign up</div>
+  <div class="screen">
+    <aside class="auth-brand">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="pitch">
+        <h2>Create your account.</h2>
+        <p>Access is role-based. Student accounts are active immediately; staff accounts are approved by SCIT Operations before timetable data is visible.</p>
+      </div>
+    </aside>
+    <main class="auth-main">
+      <div class="auth-card">
+        <h1>Sign up</h1>
+        <div class="subtitle">Use your UOW email address.</div>
+        <div class="field">
+          <label>I am a</label>
+          <div class="role-switch">
+            <div class="role-option active"><strong>Student</strong>Choose classes &amp; give feedback</div>
+            <div class="role-option"><strong>SCIT Staff</strong>Requires Operations approval</div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Full name</label>
+            <div class="input-look">Alex Nguyen</div>
+          </div>
+          <div class="field">
+            <label>Student number</label>
+            <div class="input-look">7654321</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>UOW email</label>
+          <div class="input-look error">alex.nguyen@gmail.com</div>
+          <div class="field-error">Use your @uowmail.edu.au or @uow.edu.au address</div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Password</label>
+            <div class="input-look">••••••••••</div>
+          </div>
+          <div class="field">
+            <label>Confirm password</label>
+            <div class="input-look">••••••••••</div>
+          </div>
+        </div>
+        <div class="field-hint" style="margin:-6px 0 14px;">At least 10 characters, including a number.</div>
+        <span class="checkbox-look" style="margin-bottom:10px;"><span class="box checked"></span>I agree to the UOW acceptable use policy</span>
+        <span class="btn">Create account</span>
+        <div class="auth-foot">Already have an account? <span class="link">Sign in</span></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 7 — All Bookings (Admin, Design) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">7 · Admin · All Bookings</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Workflow</div>
+      <div class="nav-item"><span>Upload &amp; Validate</span><span class="nav-badge built">Built</span></div>
+      <div class="nav-item"><span>Lab Utilisation</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>Scenario Simulation</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-item"><span>Recommendations</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-section-label nav-section-gap">Bookings</div>
+      <div class="nav-item active"><span>All Bookings</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>New Booking</span><span class="nav-badge design">Design</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar">JS</span><div><div class="user-name">Jamie Smith</div><span class="role-pill admin">SCIT Operations</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>All Bookings</h1>
+          <div class="subtitle">Autumn 2026 baseline &mdash; <strong>imported from SCIT 2026 Lab Bookings.xlsx</strong> plus manual edits</div>
+        </div>
+        <div class="topbar-meta">
+          <span class="btn">+ New booking</span>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="value">272</div><div class="label">Bookings</div></div>
+        <div class="stat-card"><div class="value">6</div><div class="label">Manual edits</div></div>
+        <div class="stat-card error"><div class="value">2</div><div class="label">Room clashes</div></div>
+        <div class="stat-card warning"><div class="value">3</div><div class="label">Over capacity</div></div>
+      </div>
+
+      <div class="filter-bar">
+        <span class="search-look">Search subject or class&hellip;</span>
+        <span class="select-look">All Rooms ▾</span>
+        <span class="select-look">All Activity Types ▾</span>
+        <span class="select-look">All Days ▾</span>
+        <span class="spacer"></span>
+        <span class="btn secondary">Export to Excel</span>
+      </div>
+
+      <div class="card">
+        <table class="data-table">
+          <thead><tr><th>Class</th><th>Activity</th><th>Room</th><th>Day &amp; time</th><th>Size / Cap.</th><th>Teaching weeks</th><th>Source</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>CSCI235-CL/01</td><td>Computer Lab</td><td><span class="pill">3-125</span></td><td>Tue 12:30&ndash;1:30 PM</td><td>36 / 40</td><td>17-21, 23-27</td><td><span class="source">Enterprise</span></td><td><div class="row-actions"><span class="edit">Edit</span><span class="cancel">Cancel</span></div></td></tr>
+            <tr><td>CSCI235-CL/02</td><td>Computer Lab</td><td><span class="pill">3-125</span></td><td>Tue 1:30&ndash;2:30 PM</td><td>38 / 40</td><td>17-21, 23-27</td><td><span class="source">Enterprise</span></td><td><div class="row-actions"><span class="edit">Edit</span><span class="cancel">Cancel</span></div></td></tr>
+            <tr class="flag-error"><td>CSIT213-CL/02</td><td>Computer Lab</td><td><span class="pill">3-124</span></td><td>Tue 10:00&ndash;11:00 AM</td><td>26 / 28</td><td>17-21, 23-28</td><td><span class="source">Enterprise</span></td><td><div class="row-actions"><span class="edit">Edit</span><span class="cancel">Cancel</span></div></td></tr>
+            <tr class="flag-error"><td>CSCI203-PR/01</td><td>Practical</td><td><span class="pill">3-124</span></td><td>Tue 10:30&ndash;12:30 PM</td><td>24 / 28</td><td>18-21, 23-27</td><td><span class="source">Enterprise</span></td><td><div class="row-actions"><span class="edit">Edit</span><span class="cancel">Cancel</span></div></td></tr>
+            <tr class="flag-warning"><td>CSIT321-CL/01</td><td>Computer Lab</td><td><span class="pill">3-230</span></td><td>Thu 2:30&ndash;4:30 PM</td><td>31 / 26</td><td>17-21, 23-28</td><td><span class="source manual">Manual</span></td><td><div class="row-actions"><span class="edit">Edit</span><span class="cancel">Cancel</span></div></td></tr>
+            <tr><td>CSIT128-TU/03</td><td>Tutorial</td><td><span class="pill">3-127</span></td><td>Wed 9:30&ndash;10:30 AM</td><td>42 / 48</td><td>17-21, 23-27</td><td><span class="source">Enterprise</span></td><td><div class="row-actions"><span class="edit">Edit</span><span class="cancel">Cancel</span></div></td></tr>
+            <tr><td>CSCI251-WS/01</td><td>Workshop</td><td><span class="pill">39A-104</span></td><td>Fri 11:30&ndash;1:30 PM</td><td>35 / 40</td><td>18, 20, 22, 24, 26</td><td><span class="source manual">Manual</span></td><td><div class="row-actions"><span class="edit">Edit</span><span class="cancel">Cancel</span></div></td></tr>
+            <tr><td>CSIT115-CL/04</td><td>Computer Lab</td><td><span class="pill">3-126</span></td><td>Mon 3:30&ndash;5:30 PM</td><td>25 / 27</td><td>17-21, 23-27</td><td><span class="source">Enterprise</span></td><td><div class="row-actions"><span class="edit">Edit</span><span class="cancel">Cancel</span></div></td></tr>
+          </tbody>
+        </table>
+        <div class="legend">
+          <span><span class="swatch" style="background:var(--error-bg);border:1px solid #fecaca"></span>Room clash (overlapping booking)</span>
+          <span><span class="swatch" style="background:var(--warning-bg);border:1px solid #fde68a"></span>Cohort size exceeds room capacity</span>
+          <span style="margin-left:auto">Showing 8 of 272</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 8 — New Booking (Admin, Design) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">8 · Admin · New Booking</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Workflow</div>
+      <div class="nav-item"><span>Upload &amp; Validate</span><span class="nav-badge built">Built</span></div>
+      <div class="nav-item"><span>Lab Utilisation</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>Scenario Simulation</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-item"><span>Recommendations</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-section-label nav-section-gap">Bookings</div>
+      <div class="nav-item"><span>All Bookings</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item active"><span>New Booking</span><span class="nav-badge design">Design</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar">JS</span><div><div class="user-name">Jamie Smith</div><span class="role-pill admin">SCIT Operations</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>New Booking</h1>
+          <div class="subtitle">Add a class to the <strong>Autumn 2026 baseline</strong> &mdash; checked for clashes and room fit before saving</div>
+        </div>
+        <div class="topbar-meta">
+          <span class="status-badge design">Design</span>
+        </div>
+      </div>
+
+      <div class="layout-2col">
+        <div class="card">
+          <h2>Class details</h2>
+          <div class="field-row">
+            <div class="field"><label>Subject</label><div class="input-look">CSCI235 &mdash; Database Systems</div></div>
+            <div class="field"><label>Class name</label><div class="input-look">CSCI235-CL/05</div></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Activity type</label><div class="input-look">Computer Lab ▾</div></div>
+            <div class="field"><label>Cohort size</label><div class="input-look">36</div></div>
+          </div>
+          <h2 style="margin-top:12px;">When &amp; where</h2>
+          <div class="field-row">
+            <div class="field"><label>Room</label><div class="input-look">3-125 &middot; capacity 40 ▾</div></div>
+            <div class="field"><label>Day</label><div class="input-look">Thursday ▾</div></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Start time</label><div class="input-look">12:30 PM</div></div>
+            <div class="field"><label>End time</label><div class="input-look">1:30 PM</div></div>
+            <div class="field"><label>Duration</label><div class="input-look">01:00</div></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Teaching week pattern</label><div class="input-look">17-21, 23-27</div><div class="field-hint">10 teaching weeks &middot; 19/03/2026 &ndash; 28/05/2026</div></div>
+            <div class="field"><label>Frequency</label>
+              <div class="toggle-group"><button class="active">Weekly</button><button>Fortnightly</button></div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <span class="btn">Save booking</span>
+            <span class="btn secondary">Cancel</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h2>Live checks</h2>
+            <div class="check-item ok"><span class="mark">✓</span><div><strong>No room clash</strong>3-125 is free Thu 12:30&ndash;1:30 PM in all 10 weeks</div></div>
+            <div class="check-item ok"><span class="mark">✓</span><div><strong>Fits room capacity</strong>36 students / 40 seats (90%)</div></div>
+            <div class="check-item warning"><span class="mark">!</span><div><strong>Cohort overlap</strong>CSCI235 students also have CSIT213 Lecture Thu 11:30&ndash;1:30 PM</div></div>
+          </div>
+          <div class="card">
+            <h2>Example: blocked save</h2>
+            <div class="check-item error"><span class="mark">✕</span><div><strong>Double-booking</strong>3-124 Tue 10:00&ndash;11:00 AM is held by CSIT213-CL/02. Pick another room or time &mdash; double-bookings can&rsquo;t be saved.</div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 9 — Adjust Booking (Admin, Design) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">9 · Admin · Adjust Booking</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Workflow</div>
+      <div class="nav-item"><span>Upload &amp; Validate</span><span class="nav-badge built">Built</span></div>
+      <div class="nav-item"><span>Lab Utilisation</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>Scenario Simulation</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-item"><span>Recommendations</span><span class="nav-badge planned">Planned</span></div>
+      <div class="nav-section-label nav-section-gap">Bookings</div>
+      <div class="nav-item active"><span>All Bookings</span><span class="nav-badge design">Design</span></div>
+      <div class="nav-item"><span>New Booking</span><span class="nav-badge design">Design</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar">JS</span><div><div class="user-name">Jamie Smith</div><span class="role-pill admin">SCIT Operations</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>Adjust Booking &middot; CSIT213-CL/02</h1>
+          <div class="subtitle">All Bookings &rsaquo; <strong>CSIT213 Computer Lab</strong> &mdash; currently clashes with CSCI203-PR/01 in 3-124</div>
+        </div>
+        <div class="topbar-meta">
+          <span class="status-badge design">Design</span>
+        </div>
+      </div>
+
+      <div class="layout-2col">
+        <div class="card">
+          <h2>Booking</h2>
+          <div class="field-row">
+            <div class="field"><label>Subject</label><div class="input-look">CSIT213 &mdash; Software Engineering</div></div>
+            <div class="field"><label>Activity type</label><div class="input-look">Computer Lab ▾</div></div>
+            <div class="field"><label>Cohort size</label><div class="input-look">26</div></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Room</label><div class="input-look" style="border-color:var(--accent)">3-230 &middot; capacity 26 ▾</div></div>
+            <div class="field"><label>Day</label><div class="input-look">Tuesday ▾</div></div>
+            <div class="field"><label>Start</label><div class="input-look" style="border-color:var(--accent)">11:00 AM</div></div>
+            <div class="field"><label>End</label><div class="input-look" style="border-color:var(--accent)">12:00 PM</div></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Apply to</label>
+              <div class="toggle-group"><button>This week only</button><button class="active">All remaining weeks (19&ndash;28)</button></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Reason for change</label>
+            <div class="textarea-look">Resolve Tue 10:00 clash with CSCI203 Practical in 3-124.</div>
+          </div>
+          <div class="form-actions" style="margin-top:16px;">
+            <span class="btn">Save changes</span>
+            <span class="btn secondary">Discard</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h2>Changes</h2>
+            <div class="diff-row"><span class="key">Room</span><span><span class="diff-old">3-124</span><span class="diff-new">3-230</span></span></div>
+            <div class="diff-row"><span class="key">Time</span><span><span class="diff-old">10:00&ndash;11:00 AM</span><span class="diff-new">11:00 AM&ndash;12:00 PM</span></span></div>
+            <div class="diff-row"><span class="key">Weeks</span><span>19&ndash;21, 23&ndash;28 (9 occurrences)</span></div>
+          </div>
+          <div class="card">
+            <h2>Re-check</h2>
+            <div class="check-item ok"><span class="mark">✓</span><div><strong>Clash resolved</strong>3-124 Tue 10:00 conflict cleared; 3-230 free 11:00&ndash;12:00</div></div>
+            <div class="check-item warning"><span class="mark">!</span><div><strong>At capacity</strong>26 students / 26 seats &mdash; no spare seats</div></div>
+          </div>
+          <div class="card">
+            <h2>History</h2>
+            <div class="history-item">Imported from Enterprise export<div class="when">5 Oct 2026 &middot; ingestion run #12</div></div>
+            <div class="history-item">Cohort size 24 → 26<div class="when">6 Oct 2026 &middot; Jamie Smith</div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 10 — My Timetable (Student, Design) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">10 · Student · My Timetable</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Student</div>
+      <div class="nav-item active"><span>My Timetable</span></div>
+      <div class="nav-item"><span>Choose Classes</span></div>
+      <div class="nav-item"><span>Lab Availability</span></div>
+      <div class="nav-item"><span>Feedback</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar" style="background:#134e4a">AN</span><div><div class="user-name">Alex Nguyen</div><span class="role-pill student">Student</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>My Timetable</h1>
+          <div class="subtitle">Autumn 2026 &mdash; <strong>3 subjects, 6 classes</strong></div>
+        </div>
+        <div class="topbar-meta">
+          <span class="btn secondary">Change classes</span>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <span class="select-look">◂</span>
+        <span class="select-look">Week 19 &middot; 30 Mar &ndash; 3 Apr 2026 ▾</span>
+        <span class="select-look">▸</span>
+      </div>
+
+      <div class="layout-2col">
+        <div class="card">
+          <div class="timetable-wrap">
+          <div class="timetable">
+            <div></div><div class="day">Mon</div><div class="day">Tue</div><div class="day">Wed</div><div class="day">Thu</div><div class="day">Fri</div>
+            <div class="time">8:30</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+            <div class="time">9:30</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+            <div class="time">10:30</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+            <div class="time">11:30</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+            <div class="time">12:30</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+            <div class="time">1:30</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+            <div class="time">2:30</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+            <div class="time">3:30</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+            <div class="time">4:30</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+            <div class="time">5:30</div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+          </div>
+          <div class="timetable timetable-overlay">
+            <div class="tt-block lecture" style="grid-column:3;grid-row:3/5"><strong>CSCI235</strong>Lecture &middot; 20-1</div>
+            <div class="tt-block lab" style="grid-column:3;grid-row:6/7"><strong>CSCI235</strong>Computer Lab &middot; 3-125</div>
+            <div class="tt-block lecture" style="grid-column:4;grid-row:4/6"><strong>CSIT213</strong>Lecture &middot; 67-104</div>
+            <div class="tt-block lab" style="grid-column:4;grid-row:7/9"><strong>CSIT213</strong>Computer Lab &middot; 3-230</div>
+            <div class="tt-block tutorial" style="grid-column:5;grid-row:4/5"><strong>CSCI203</strong>Tutorial &middot; 3-127</div>
+            <div class="tt-block lecture" style="grid-column:5;grid-row:7/9"><strong>CSCI203</strong>Lecture &middot; 40-153</div>
+          </div>
+          </div>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--accent)"></span>Computer Lab</span>
+            <span><span class="swatch" style="background:#7c3aed"></span>Lecture</span>
+            <span><span class="swatch" style="background:#0d9488"></span>Tutorial</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h2>On-campus days this week</h2>
+            <div class="stat-card" style="border:none;padding:0;"><div class="value">3 days</div></div>
+            <div class="day-dots">
+              <span class="day-dot">M</span><span class="day-dot on">T</span><span class="day-dot on">W</span><span class="day-dot on">T</span><span class="day-dot">F</span>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Next class</h2>
+            <div class="metric-row"><span>CSCI235 Lecture</span><span class="value">Tue 9:30 AM</span></div>
+            <div class="metric-row"><span>Room</span><span class="value">20-1</span></div>
+            <div class="metric-row"><span>Weeks</span><span class="value">17-21, 23-27</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 11 — Choose Classes (Student, Design) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">11 · Student · Choose Classes</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Student</div>
+      <div class="nav-item"><span>My Timetable</span></div>
+      <div class="nav-item active"><span>Choose Classes</span></div>
+      <div class="nav-item"><span>Lab Availability</span></div>
+      <div class="nav-item"><span>Feedback</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar" style="background:#134e4a">AN</span><div><div class="user-name">Alex Nguyen</div><span class="role-pill student">Student</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>Choose Classes</h1>
+          <div class="subtitle">Pick one computer lab class per subject &mdash; <strong>seats are limited by room capacity</strong></div>
+        </div>
+        <div class="topbar-meta">
+          <span class="btn">Confirm choices</span>
+        </div>
+      </div>
+
+      <div class="layout-2col">
+        <div>
+          <div class="card">
+            <div class="subject-head"><span class="title">CSCI235 &middot; Computer Lab</span><span class="meta">1 hr weekly &middot; weeks 17-21, 23-27</span></div>
+            <div class="slot-grid">
+              <div class="slot-card selected">
+                <span class="name">CL/01 &middot; Selected</span>
+                <span class="when">Tue 12:30&ndash;1:30 PM &middot; 3-125</span>
+                <div class="foot"><span class="seats ok">4 of 40 seats left</span><span class="btn small secondary">Selected ✓</span></div>
+              </div>
+              <div class="slot-card">
+                <span class="name">CL/02</span>
+                <span class="when">Tue 1:30&ndash;2:30 PM &middot; 3-125</span>
+                <div class="foot"><span class="seats low">2 of 40 seats left</span><span class="btn small">Select</span></div>
+              </div>
+              <div class="slot-card clash">
+                <span class="name">CL/03</span>
+                <span class="when">Thu 10:30&ndash;11:30 AM &middot; 3-125</span>
+                <span class="clash-note">Clashes with your CSCI203 Tutorial (Thu 10:30)</span>
+                <div class="foot"><span class="seats ok">4 of 40 seats left</span><span class="btn small disabled">Select</span></div>
+              </div>
+              <div class="slot-card full">
+                <span class="name">CL/04</span>
+                <span class="when">Thu 11:30 AM&ndash;12:30 PM &middot; 3-125</span>
+                <div class="foot"><span class="seats none">Full &middot; 40 / 40</span><span class="btn small disabled">Full</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="subject-head"><span class="title">CSIT213 &middot; Computer Lab</span><span class="meta">2 hr weekly &middot; weeks 17-21, 23-28</span></div>
+            <div class="slot-grid">
+              <div class="slot-card selected">
+                <span class="name">CL/01 &middot; Selected</span>
+                <span class="when">Wed 1:30&ndash;3:30 PM &middot; 3-230</span>
+                <div class="foot"><span class="seats low">2 of 26 seats left</span><span class="btn small secondary">Selected ✓</span></div>
+              </div>
+              <div class="slot-card">
+                <span class="name">CL/03</span>
+                <span class="when">Mon 9:30&ndash;11:30 AM &middot; 3-124</span>
+                <span class="clash-note" style="color:var(--warning)">Adds Monday &mdash; 4 on-campus days</span>
+                <div class="foot"><span class="seats ok">9 of 28 seats left</span><span class="btn small">Select</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h2>Your week</h2>
+            <div class="stat-card" style="border:none;padding:0;"><div class="value">3 days</div><div class="label">On campus</div></div>
+            <div class="day-dots">
+              <span class="day-dot">M</span><span class="day-dot on">T</span><span class="day-dot on">W</span><span class="day-dot on">T</span><span class="day-dot">F</span>
+            </div>
+            <div class="constraint-note" style="color:var(--accent-dark);background:var(--accent-light);border-color:#bfdbfe;">Your current choices keep you on campus 3 days. Switching CSIT213 to CL/03 would add Monday.</div>
+          </div>
+          <div class="card">
+            <h2>Selected</h2>
+            <div class="metric-row"><span>CSCI235 CL/01</span><span class="value">Tue 12:30 PM</span></div>
+            <div class="metric-row"><span>CSIT213 CL/01</span><span class="value">Wed 1:30 PM</span></div>
+            <div class="metric-row"><span>CSCI203 TU/02</span><span class="value">Thu 10:30 AM</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 12 — Lab Availability (Student, Design) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">12 · Student · Lab Availability</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Student</div>
+      <div class="nav-item"><span>My Timetable</span></div>
+      <div class="nav-item"><span>Choose Classes</span></div>
+      <div class="nav-item active"><span>Lab Availability</span></div>
+      <div class="nav-item"><span>Feedback</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar" style="background:#134e4a">AN</span><div><div class="user-name">Alex Nguyen</div><span class="role-pill student">Student</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>Lab Availability</h1>
+          <div class="subtitle">When SCIT computer labs are <strong>free of scheduled classes</strong> &mdash; for self-study, 8:30 AM&ndash;6:30 PM</div>
+        </div>
+        <div class="topbar-meta">
+          <div class="info-note">Read-only. Rooms are allocated through class selection, not booked directly.</div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <span class="select-look">Week 19 &middot; 30 Mar &ndash; 3 Apr 2026 ▾</span>
+        <span class="select-look">All Rooms ▾</span>
+      </div>
+
+      <div class="layout-2col">
+        <div class="card">
+          <h2>Free hours &mdash; by room &amp; day</h2>
+          <div class="heatmap">
+            <div></div>
+            <div class="col-label">Mon</div><div class="col-label">Tue</div><div class="col-label">Wed</div><div class="col-label">Thu</div><div class="col-label">Fri</div>
+            <div class="row-label">3-124</div>
+            <div class="heat-cell h2">4h</div><div class="heat-cell h1">2h</div><div class="heat-cell h3">6h</div><div class="heat-cell h2">4h</div><div class="heat-cell h4">8h</div>
+            <div class="row-label">3-125</div>
+            <div class="heat-cell h4">8h</div><div class="heat-cell h3">6h</div><div class="heat-cell h3">6h</div><div class="heat-cell h5">9h</div><div class="heat-cell h4">8h</div>
+            <div class="row-label">3-126</div>
+            <div class="heat-cell h3">6h</div><div class="heat-cell h4">8h</div><div class="heat-cell h2">4h</div><div class="heat-cell h3">6h</div><div class="heat-cell h5">10h</div>
+            <div class="row-label">3-127</div>
+            <div class="heat-cell h5">9h</div><div class="heat-cell h4">8h</div><div class="heat-cell h4">8h</div><div class="heat-cell h5">9h</div><div class="heat-cell h5">10h</div>
+            <div class="row-label">3-128</div>
+            <div class="heat-cell h3">6h</div><div class="heat-cell h2">4h</div><div class="heat-cell h3">6h</div><div class="heat-cell h4">8h</div><div class="heat-cell h4">8h</div>
+            <div class="row-label">3-230</div>
+            <div class="heat-cell h1">2h</div><div class="heat-cell h2">4h</div><div class="heat-cell h1">2h</div><div class="heat-cell h2">4h</div><div class="heat-cell h3">6h</div>
+            <div class="row-label">39A-104</div>
+            <div class="heat-cell h5">9h</div><div class="heat-cell h5">9h</div><div class="heat-cell h4">8h</div><div class="heat-cell h5">9h</div><div class="heat-cell h5">10h</div>
+          </div>
+          <div class="legend">
+            <span>Free hours/day:</span>
+            <span><span class="swatch" style="background:var(--heat-1)"></span>0&ndash;2h</span>
+            <span><span class="swatch" style="background:var(--heat-2)"></span>3&ndash;4h</span>
+            <span><span class="swatch" style="background:var(--heat-3)"></span>5&ndash;6h</span>
+            <span><span class="swatch" style="background:var(--heat-4)"></span>7&ndash;8h</span>
+            <span><span class="swatch" style="background:var(--heat-5)"></span>9h+</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Free now &middot; Tue 2:40 PM</h2>
+          <div class="free-row"><span><span class="pill">3-127</span> 48 seats</span><span class="until">until 4:30 PM</span></div>
+          <div class="free-row"><span><span class="pill">39A-104</span> 40 seats</span><span class="until">until 6:30 PM</span></div>
+          <div class="free-row"><span><span class="pill">3-126</span> 27 seats</span><span class="until">until 3:30 PM</span></div>
+          <div class="free-row"><span><span class="pill">3-128</span> 28 seats</span><span class="until">until 5:30 PM</span></div>
+          <div class="free-row"><span><span class="pill">3-125</span> 40 seats</span><span class="until">in use &middot; free 3:30 PM</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ SCREEN 13 — Feedback (Student, Design) ============ -->
+<div class="frame-wrap">
+  <div class="frame-label">13 · Student · Feedback</div>
+  <div class="screen">
+    <nav class="sidebar">
+      <div class="brand">
+        <div class="brand-title">SCIT Lab Scheduling</div>
+        <div class="brand-sub">School of Computing &amp; IT, UOW</div>
+      </div>
+      <div class="nav-section-label">Student</div>
+      <div class="nav-item"><span>My Timetable</span></div>
+      <div class="nav-item"><span>Choose Classes</span></div>
+      <div class="nav-item"><span>Lab Availability</span></div>
+      <div class="nav-item active"><span>Feedback</span></div>
+      <div class="sidebar-foot">
+        <div class="user-chip"><span class="avatar" style="background:#134e4a">AN</span><div><div class="user-name">Alex Nguyen</div><span class="role-pill student">Student</span></div></div>
+        <div class="sign-out">Sign out</div>
+      </div>
+    </nav>
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h1>Feedback</h1>
+          <div class="subtitle">Tell SCIT Operations how lab scheduling works for you &mdash; <strong>responses inform next semester&rsquo;s timetable</strong></div>
+        </div>
+      </div>
+
+      <div class="layout-2col">
+        <div class="card">
+          <h2>New feedback</h2>
+          <div class="field-row">
+            <div class="field"><label>Subject / class</label><div class="input-look">CSIT213 &middot; Computer Lab CL/01 ▾</div></div>
+            <div class="field"><label>Room</label><div class="input-look">3-230</div></div>
+          </div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>What is it about?</label>
+            <div class="toggle-group" style="display:inline-flex;"><button>Timing</button><button class="active">Room</button><button>Days on campus</button><button>Other</button></div>
+          </div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>How well does this lab work for you?</label>
+            <div class="rating"><span class="on">1</span><span class="on">2</span><span>3</span><span>4</span><span>5</span></div>
+          </div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>Comments</label>
+            <div class="textarea-look">3-230 is always full &mdash; not enough working PCs for a 2-hour lab with 26 students.</div>
+          </div>
+          <span class="checkbox-look" style="margin-bottom:14px;"><span class="box"></span>Submit anonymously</span>
+          <div class="form-actions"><span class="btn">Submit feedback</span></div>
+        </div>
+
+        <div class="card">
+          <h2>Your submissions</h2>
+          <div class="feedback-item">
+            <div class="top"><strong>CSCI235 &middot; Timing</strong><span class="status-badge small built">Reviewed</span></div>
+            Labs straight after the lecture would save a trip on Tuesdays.
+            <div class="field-hint">12 Mar 2026 &middot; rating 3/5</div>
+          </div>
+          <div class="feedback-item">
+            <div class="top"><strong>CSCI203 &middot; Days on campus</strong><span class="status-badge small design">Received</span></div>
+            Thursday has a 2-hour gap between tutorial and lecture.
+            <div class="field-hint">2 Apr 2026 &middot; rating 2/5</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+</body>
+</html>
