@@ -1,8 +1,9 @@
 import type { IngestionRunSummary } from '../types/ingestion'
 
 const API_BASE = '/api'
+const TOKEN_KEY = 'scit.token'
 
-class ApiError extends Error {
+export class ApiError extends Error {
   status: number
 
   constructor(message: string, status: number) {
@@ -11,12 +12,54 @@ class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, init)
+export function getToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setToken(token: string | null): void {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token)
+    else localStorage.removeItem(TOKEN_KEY)
+  } catch {
+    // Storage unavailable (private mode): the session lasts for this page load only.
+  }
+}
+
+/** FastAPI returns `detail` as a string, or as a list of validation errors. */
+function errorMessage(body: { detail?: unknown }, status: number): string {
+  const { detail } = body
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail
+      .map((d: { msg?: string }) => (d.msg ?? '').replace(/^Value error, /, ''))
+      .filter(Boolean)
+      .join(' ')
+  }
+  return `Request failed: ${status}`
+}
+
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers)
+  const token = getToken()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  const response = await fetch(`${API_BASE}${path}`, { ...init, headers })
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
-    throw new ApiError(body.detail ?? `Request failed: ${response.status}`, response.status)
+    if (response.status === 401 && token) {
+      setToken(null)
+      window.dispatchEvent(new Event('auth:expired'))
+    }
+    throw new ApiError(errorMessage(body, response.status), response.status)
   }
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
 

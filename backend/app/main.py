@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health, ingestion, labs
+from app.api.routes import auth, bookings, feedback, health, ingestion, labs, student, users
 from app.core.config import get_settings
 
 # Import models so they register on Base.metadata before create_all.
@@ -34,5 +34,10 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 app.include_router(ingestion.router, prefix="/api")
 app.include_router(labs.router, prefix="/api")
+app.include_router(bookings.router, prefix="/api")
+app.include_router(student.router, prefix="/api")
+app.include_router(feedback.router, prefix="/api")

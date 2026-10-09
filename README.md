@@ -7,7 +7,10 @@ requirements, and `docs/architecture.md` for the phased build plan.
 
 Current scope: **Phase 0 (scaffolding) + Phase 1 (FR1 — timetable data
 ingestion & integrity check)**, rebuilt against the real UOW Enterprise
-export at `docs/SCIT 2026 Lab Bookings.xlsx`. FR2 (lab utilisation) is
+export at `docs/SCIT 2026 Lab Bookings.xlsx`, plus **sign-in with
+role-based access, admin booking management, and student pages** (class
+selection, timetable, lab availability, feedback) as designed in
+`docs/SCIT Lab Scheduling Prototype.html`. FR2 (lab utilisation) is
 designed but not implemented — see `docs/architecture.md` for the open
 questions that need confirmation from the client before it's built.
 
@@ -19,8 +22,26 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 alembic upgrade head          # or rely on dev auto-create-all on startup
 python -m scripts.seed_real_rooms   # seeds the 7 real SCIT room codes
+python -m scripts.create_admin you@uow.edu.au "Your Name"   # first admin; prompts for a password
 uvicorn app.main:app --reload --port 8000
 ```
+
+### Accounts and roles
+
+Everything except `/api/health` requires sign-in (`Authorization: Bearer`
+token from `POST /api/auth/login`). Sign-up needs a `@uow.edu.au` or
+`@uowmail.edu.au` email.
+
+| Role | Can | Gets it by |
+|---|---|---|
+| `student` | choose classes, view own timetable, lab availability, send feedback | signing up as Student (active immediately) |
+| `staff` | read bookings, availability and feedback | signing up as SCIT Staff, then an admin approves |
+| `admin` | upload exports, add/adjust/cancel bookings, approve users, review feedback | `scripts/create_admin.py`, or an admin changes the role |
+
+Bookings and the student pages read the **active baseline** — the most
+recent completed upload. Admin edits are checked for room double-bookings
+(blocked) and capacity/cohort overlaps (warnings), and every change is kept
+in a per-booking history.
 
 Run tests: `pytest` (from `backend/`, with the venv active).
 Lint: `ruff check app`.

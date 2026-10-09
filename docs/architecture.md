@@ -71,9 +71,33 @@ rebuild is driven by the real export: `docs/SCIT 2026 Lab Bookings.xlsx`.
   implemented.** Open items below need client confirmation before building.
 - **Phase 3 — FR3 (Scenario Simulation Engine)**: not started.
 - **Phase 4 — FR4 (Comparison & Recommendations)**: not started.
-- **Phase 5 — RBAC/Auth/Hardening**: not started. PostgreSQL + Docker are
-  planned for this phase (or whenever multi-user/production use requires
-  them) rather than local dev.
+- **Auth, admin bookings, student pages** (prototype screens 5–13): done.
+  - *Auth/RBAC* — `users` + `auth_sessions` (scrypt password hashes,
+    DB-stored sha256 of an opaque bearer token; 12 h, or 30 days with
+    "remember me"). Roles `student` / `staff` / `admin`; staff sign-ups stay
+    `pending` until an admin approves (`app/api/deps.py`,
+    `app/api/routes/auth.py`, `users.py`).
+  - *Active baseline* — the latest completed ingestion run sets
+    `IngestionRun.is_active_baseline`; bookings and student views read only
+    that run's non-cancelled entries (`app/bookings/clashes.active_entries`).
+  - *Admin bookings* — create/adjust/cancel on `baseline_schedule_entries`
+    (`source` = `enterprise` | `manual`, `status` = `active` | `cancelled`),
+    with a `booking_changes` audit trail. Room double-bookings are refused
+    (409) using the strict-overlap rule below; capacity and same-subject
+    cross-type overlaps only warn. New bookings take explicit dates (first
+    date × count, weekly/fortnightly, skip dates) — never derived from
+    teaching-week numbers. A day change shifts every existing date by the
+    weekday difference; "edit this week only" is not supported.
+  - *Student pages* — students add their own subjects (the export has no
+    per-student enrolment) and pick one class per subject, class type and
+    teaching period. Teaching periods are clusters of overlapping booking
+    date ranges (the real export holds Autumn and Spring sessions). Seats
+    left = room capacity − export cohort size − in-app picks. Lab
+    availability uses a display window (`student_day_start/end`, default
+    08:30–18:30) that is **not** "Available Lab Hours" for FR2.
+- **Phase 5 — Hardening**: PostgreSQL + Docker are still planned for this
+  phase (or whenever multi-user/production use requires them) rather than
+  local dev; UOW single sign-on is not integrated.
 
 ## FR2 design sketch — assumptions requiring confirmation from Ridwan Haq
 
@@ -109,7 +133,9 @@ confirmation**:
 ## Data model (current)
 
 `labs`, `ingestion_runs`, `ingestion_errors`, `baseline_schedule_entries`,
-`schedule_occurrences` — see `backend/app/db/models/`. Fields FR1 already
+`schedule_occurrences`, `users`, `auth_sessions`, `booking_changes`,
+`student_subjects`, `class_selections`, `feedback` — see
+`backend/app/db/models/`. Fields FR1 already
 persists that FR2 will need: `class_type`, `lab_id`, `week_number`
 (nullable), `start_datetime`/`end_datetime` per occurrence, `cohort_size`
 (+ its zero-value warning) — no schema change should be needed to build FR2.

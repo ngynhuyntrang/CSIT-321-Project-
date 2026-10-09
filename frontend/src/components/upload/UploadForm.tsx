@@ -35,7 +35,7 @@ export function UploadForm({ onUploaded }: UploadFormProps) {
     <form onSubmit={handleSubmit} className="upload-form">
       <label htmlFor="timetable-file">Semester timetable export (.xlsx / .csv)</label>
       <input id="timetable-file" ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" />
-      <button type="submit" disabled={isUploading}>
+      <button type="submit" className="btn" disabled={isUploading}>
         {isUploading ? 'Uploading…' : 'Upload & Validate'}
       </button>
       {error && <p className="error-text">{error}</p>}

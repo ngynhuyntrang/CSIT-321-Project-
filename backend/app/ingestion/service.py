@@ -150,6 +150,12 @@ def run_ingestion(db: Session, filename: str, content: bytes) -> IngestionRun:
             )
 
     ingestion_run.status = "completed"
+    # The newest completed run becomes the baseline that bookings and the
+    # student pages read from; older runs are kept for history only.
+    db.query(IngestionRun).filter(IngestionRun.id != ingestion_run.id).update(
+        {IngestionRun.is_active_baseline: False}
+    )
+    ingestion_run.is_active_baseline = True
     db.commit()
     db.refresh(ingestion_run)
     return ingestion_run

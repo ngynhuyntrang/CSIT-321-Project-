@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import UTC, datetime, time
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -14,6 +14,11 @@ class BaselineScheduleEntry(Base):
     `week_pattern_raw` / `teaching_weeks_count` are kept only as the original
     file's reference text -- they are never parsed into `ScheduleOccurrence`
     week numbers (see `ScheduleOccurrence.week_number`).
+
+    `source` is "enterprise" for rows from an export and "manual" for
+    bookings an admin created in the app. A cancelled booking keeps its row
+    (with `status="cancelled"`) for the audit trail, but its occurrences are
+    deleted so it no longer takes up room time.
     """
 
     __tablename__ = "baseline_schedule_entries"
@@ -30,6 +35,11 @@ class BaselineScheduleEntry(Base):
     cohort_size: Mapped[int] = mapped_column(Integer)
     week_pattern_raw: Mapped[str | None] = mapped_column(String(200), nullable=True)
     teaching_weeks_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source: Mapped[str] = mapped_column(String(20), default="enterprise", server_default="enterprise")
+    status: Mapped[str] = mapped_column(String(20), default="active", server_default="active")
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, onupdate=lambda: datetime.now(UTC)
+    )
 
     occurrences: Mapped[list["ScheduleOccurrence"]] = relationship(
         back_populates="baseline_entry", cascade="all, delete-orphan"

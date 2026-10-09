@@ -12,6 +12,7 @@ const ERROR_TYPE_LABELS: Record<string, string> = {
   zero_cohort_size: 'Cohort size is 0',
   duration_end_time_mismatch: 'Start + duration ≠ recorded end time',
   date_count_mismatch: 'Date count ≠ Number Of Teaching Weeks',
+  capacity_mismatch: 'Room capacity differs from recorded value',
 }
 
 interface ValidationSummaryProps {
@@ -29,6 +30,7 @@ function ErrorTable({
 }) {
   if (rows.length === 0) return null
   return (
+    <div className="card">
     <table className={`error-table error-table--${variant}`}>
       <caption>{caption}</caption>
       <thead>
@@ -52,6 +54,7 @@ function ErrorTable({
         ))}
       </tbody>
     </table>
+    </div>
   )
 }
 
@@ -64,16 +67,27 @@ export function ValidationSummary({ summary }: ValidationSummaryProps) {
 
   return (
     <section className="validation-summary">
-      <h2>Ingestion result: {summary.filename}</h2>
-      <p>
-        Status: <strong>{statusLabel}</strong>
+      <p className="subtitle" style={{ marginBottom: 12 }}>
+        <strong>{summary.filename}</strong> — {statusLabel}
       </p>
-      <ul className="summary-stats">
-        <li>Total rows: {summary.total_rows}</li>
-        <li>Valid: {summary.valid_rows}</li>
-        <li>Invalid: {summary.invalid_rows}</li>
-        <li>With warnings: {summary.rows_with_warnings}</li>
-      </ul>
+      <div className="stats-row">
+        <div className="stat-card">
+          <div className="value">{summary.total_rows}</div>
+          <div className="label">Total rows</div>
+        </div>
+        <div className="stat-card ok">
+          <div className="value">{summary.valid_rows}</div>
+          <div className="label">Inserted</div>
+        </div>
+        <div className="stat-card error">
+          <div className="value">{summary.invalid_rows}</div>
+          <div className="label">Errors</div>
+        </div>
+        <div className="stat-card warning">
+          <div className="value">{summary.rows_with_warnings}</div>
+          <div className="label">Warnings</div>
+        </div>
+      </div>
 
       <ErrorTable
         rows={blockingErrors}

@@ -17,12 +17,12 @@ def _seed_real_rooms(db_session: Session) -> None:
 
 
 def test_upload_real_shaped_export_reports_valid_invalid_and_warnings(
-    client: TestClient, db_session: Session
+    admin_client: TestClient, db_session: Session
 ):
     _seed_real_rooms(db_session)
 
     with open(FIXTURES / "sample_upload.xlsx", "rb") as f:
-        response = client.post(
+        response = admin_client.post(
             "/api/ingestion/upload",
             files={
                 "file": (
@@ -50,10 +50,10 @@ def test_upload_real_shaped_export_reports_valid_invalid_and_warnings(
     assert ("date_count_mismatch", "warning") in error_types
 
 
-def test_joint_subject_row_stores_both_subject_codes(client: TestClient, db_session: Session):
+def test_joint_subject_row_stores_both_subject_codes(admin_client: TestClient, db_session: Session):
     _seed_real_rooms(db_session)
     with open(FIXTURES / "sample_upload.xlsx", "rb") as f:
-        client.post("/api/ingestion/upload", files={"file": ("sample_upload.xlsx", f)})
+        admin_client.post("/api/ingestion/upload", files={"file": ("sample_upload.xlsx", f)})
 
     from app.db.models.baseline import BaselineScheduleEntry
 
@@ -66,11 +66,11 @@ def test_joint_subject_row_stores_both_subject_codes(client: TestClient, db_sess
 
 
 def test_occurrences_use_start_plus_duration_not_raw_end_time(
-    client: TestClient, db_session: Session
+    admin_client: TestClient, db_session: Session
 ):
     _seed_real_rooms(db_session)
     with open(FIXTURES / "sample_upload.xlsx", "rb") as f:
-        client.post("/api/ingestion/upload", files={"file": ("sample_upload.xlsx", f)})
+        admin_client.post("/api/ingestion/upload", files={"file": ("sample_upload.xlsx", f)})
 
     from app.db.models.baseline import BaselineScheduleEntry
 
@@ -86,23 +86,23 @@ def test_occurrences_use_start_plus_duration_not_raw_end_time(
     assert occurrence.week_number is None
 
 
-def test_get_summary_after_upload(client: TestClient, db_session: Session):
+def test_get_summary_after_upload(admin_client: TestClient, db_session: Session):
     _seed_real_rooms(db_session)
     with open(FIXTURES / "sample_upload.xlsx", "rb") as f:
-        upload_response = client.post(
+        upload_response = admin_client.post(
             "/api/ingestion/upload", files={"file": ("sample_upload.xlsx", f)}
         )
     run_id = upload_response.json()["id"]
 
-    summary_response = client.get(f"/api/ingestion/{run_id}/summary")
+    summary_response = admin_client.get(f"/api/ingestion/{run_id}/summary")
     assert summary_response.status_code == 200
     assert summary_response.json()["id"] == run_id
 
 
-def test_missing_required_column_fails_whole_file(client: TestClient, db_session: Session):
+def test_missing_required_column_fails_whole_file(admin_client: TestClient, db_session: Session):
     _seed_real_rooms(db_session)
     with open(FIXTURES / "missing_room_column.xlsx", "rb") as f:
-        response = client.post(
+        response = admin_client.post(
             "/api/ingestion/upload", files={"file": ("missing_room_column.xlsx", f)}
         )
 
